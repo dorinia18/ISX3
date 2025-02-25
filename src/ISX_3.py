@@ -109,7 +109,7 @@ class ISX_3:
 
             received = "".join(str(received))  # If you need all the data
         received_hex = [hex(receive) for receive in received]
-        # print(received_hex)
+        print(received_hex)
         try:
             found_start_ack = False
             found_end_ack = False
@@ -430,6 +430,27 @@ class ISX_3:
             ACK
 
             """
+            print("hallo:", clTbt_sp(freq_list.stop_freq))
+            print(clTbt_sp(freq_list.start_freq))
+
+            print( bytearray(list(itertools.chain([
+                0xB6,
+                0x25,
+                0x03],
+                clTbt_sp(freq_list.start_freq),
+                clTbt_sp(freq_list.stop_freq),
+                clTbt_sp(freq_list.steps),
+                [freq_list.scale],
+                clTbt_sp(freq_list.precision),
+                clTbt_sp(freq_list.current_amp),
+                [0x01],
+                uintTbt(freq_list.point_delay),
+                [0x02],
+                clTbt_sp(freq_list.phase_sync), #TODO find out what changes are needed to enable phase sync, error: Command could not be recognized
+                [0x03],
+                uintTbt(freq_list.exc_type),
+                [0xB6]))))
+
             return bytearray(list(itertools.chain([
                 0xB6,
                 0x25,
@@ -579,53 +600,96 @@ class ISX_3:
         
     def GetSetup(self):
         """
-        Setup
+        0xB7 - Get Setup
+        This function is split into multiple functions/ commands to get information of the different settings of the setup.
+        
+        General syntax
+        [CT] [LE] [OB] [CD] [CT]
 
-
-        TODO: Reference to manual. Doc underneath is to big
-        TODO: Split into multiple functions which sets the parameter individually
-
-        Initialization and Configuration Commands
-            Init : 0x01
-            Add single frequency point : 0x02
-            Add frequency list : 0x03
-            Set amplitude : 0x05
-
-        Compensation Commands
-            start compensation : 0x10
-            compensation acknowledge : 0x11
-            compensation not-acknowledge : 0x12
-            compensation-interaction-request Open : 0x13
-            compensation-interaction-request Short : 0x14
-            compensation-interaction-request Load : 0x15
-            compensation-interaction-request Load value : 0x16
-            set compensation data  : 0x17
-
-        Saving to Slot
-            saving to slot  : 0x20
-
-        DC Bias
-            DC Bias :  0x30
-            DC Bias not-acknowledge : 0x32
-            DC Bias set value : 0x33
-
-
-        Init
-            This option resets the currently configured setup and an empty setup is initialized.
-            Syntax: Syntax set: [CT] 01 01 [CT]
-
-        CD (Add single frequency point)
-            This command is used to add a single frequency point to the currently configured setup. Syntax
-            Syntax set: [CT] [LE] 02 [CD] [CT]
-
-
-
-        Returns
+        [OB]
+            Get total number of frequencies: 0x01 
+            TODO: add the rest
+        Return
+        [CT] [LE] [OB] [CD] [CT]
         -------
         ACK
         """
+        def GetNbrFreq():
+           """
+           0x01 - Get total number of frequencies
+           This command reads the total number of frequencies configured in the setup.
+
+           Syntax
+           [CT] 01 01 [CT]
+
+           Return
+           [CT] 03 01 [CD] [CT]
+
+           [CD]
+           number of rows configured
+           Length: 2 byte
+           Data format: unsigned integer 
+           """
+           return(bytearray([0xB7, 0x01, 0x01, 0xB7]))
+
+        def GetFreqPoint():
+            """
+            0x02 -  Get information of frequency point
+            This command gets information of a configured point of the setup.
+
+            Syntax
+            [CT] 03 02 [CD] [CT]
+
+            [CD]
+                Row number
+                Length: 2 byte
+                Data format: unsigned integer
+
+            Return
+            [CT] 0D 02 [Frequency] [Precision] [Signal amplitude] [CT]
+
+            [Frequency]
+                Length: 4 byte
+                Data format: float
+                Unit: Hz
+
+            [Precision]
+                Length: 4 byte
+                Data format: float
+
+            [Signal amplitude]
+                Length: 4 byte
+                Data format: float
+                Voltage amplitude in V
+                Current amplitude in A
+            """
+            #TODO: Add variable to define row -> here just row 1 chosen
+            return(bytearray([0xB7, 0x03, 0x02,0x00, 0x01, 0xB7]))
+        
+        def GetFreqList():
+            """
+            0x02 - Get frequency list
+            This command gets a list of frequencies configured in this setup.
+
+            Syntax
+            [CT] 01 04 [CT]
+
+            Return
+            [CT] [LE] 04 [4 Byte float frequency1] […] [4 Byte float frequencyN] [CT]
+
+            [4 Byte float frequency1] […] [4 Byte float frequencyN]
+                In the case of "get frequency list" cmd one data frame is limited to a total of 252 bytes of data.
+                The returning command will be split into multiple separate frames, if this number is exceeded.
+                For example if the setup contains 64 frequency points the first 62 will be transmitted in a frame containing 249 bytes (=62*4+1)
+                  and in a separate frame containing 9 bytes (=2*4+1) bytes of data.
+
+            """
+            return(bytearray([0xB7, 0x01, 0x04, 0xB7]))
+  
         self.print_msg = True
-        self.write_command_string(bytearray([0xB7, 0x00, 0xB7]))
+        self.write_command_string(GetNbrFreq())
+        #self.write_command_string(GetFreqPoint())
+        self.write_command_string(GetFreqList())
         self.print_msg = False
 
     def SetSyncTime(self):
@@ -831,7 +895,7 @@ class ISX_3:
             """
             pass
 
-        def StartMeasurement():
+        def StartMeasurement(EisSetup: EisMeasurementSetup):
 
             """"
             0x01 - Start Measurement
@@ -850,14 +914,15 @@ class ISX_3:
             Example: B8 03 01 00 01 B8 - to start a measurement and stop it automatically after one measurement spectra per channel configuration.
 
             """
-            repeat = uintTbt(EisMeasurementSetup.repeat)
-            
+            repeat = clTbt_sp(EisSetup.repeat)
+            print(repeat)
+
             return (bytearray(list(itertools.chain(
                     [0xB8,
                     0x03,
                     0x01,
                     0x00],
-                    repeat[2:],
+                    repeat[:2],
                     [0xB8]))))
         
         def parse_data(data):
@@ -883,7 +948,8 @@ class ISX_3:
         self.print_msg = True
         # self.write_command_string(StopMeasurement())
         print('Measurement started.')
-        data = self.write_command_string(StartMeasurement())
+        print(StartMeasurement(EisSetup))
+        data = self.write_command_string(StartMeasurement(EisSetup))
         
         self.print_msg = False  
 

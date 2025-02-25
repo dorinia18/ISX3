@@ -40,7 +40,6 @@ class EisMeasurementSetup:
     freq_list: Union[FreqList, list[FreqList]]
 
     #Numbers of Spectra per Channel Config
-
     repeat: int
 
 
