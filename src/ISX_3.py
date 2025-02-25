@@ -17,6 +17,9 @@ from com_util import(
 import numpy as np
 import itertools
 import struct
+import csv
+from datetime import datetime as dt
+
 
 msg_dict = {
     "0x01": "Frame-Not-Acknowledge: Incorrect syntax",
@@ -305,8 +308,6 @@ class ISX_3:
         Returns
         -------
         ACK
-
-        TODO: HEAVY LOAD 2-3h: Split into multiple functions which sets the parameter individually
 
         """
         def Init_Setup():
@@ -859,11 +860,31 @@ class ISX_3:
                     repeat[2:],
                     [0xB8]))))
         
+        def parse_data(data):
+            #not implemented yet
+
+            pass
+        
+        def store_data(parsed_data, path):
+            """
+            store measurement data in .csv at location defined in path
+            """
+            # open the CSV-file
+            with open(path, "w", newline = '') as file: # parameter "w" to write a new file or "a" to append to an existing file
+
+                print(f"CSV-file opened:{path}") 
+
+                writer = csv.writer(file, delimiter=';') # start of the CSV-writers
+                writer.writerow(['Measurement '+(dt.now().strftime("%d.%m.%Y"))+" "+(dt.now().strftime("%H:%M:%S"))]) # this row marks the start of a new measurement
+                writer.writerow(['TBD']) # header for the CSV file
+
+
+        
         self.print_msg = True
         # self.write_command_string(StopMeasurement())
-        print('start measurement: ')
-        x = self.write_command_string(StartMeasurement())
-        # print(x)
+        print('Measurement started.')
+        data = self.write_command_string(StartMeasurement())
+        
         self.print_msg = False  
 
 # 0xBD - Set Ethernet Configuration
