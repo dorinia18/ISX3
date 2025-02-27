@@ -109,7 +109,7 @@ class ISX_3:
 
             received = "".join(str(received))  # If you need all the data
         received_hex = [hex(receive) for receive in received]
-        #print(received_hex)
+        # print(received_hex)
         try:
             found_start_ack = False
             found_end_ack = False
@@ -129,20 +129,6 @@ class ISX_3:
         if self.print_msg:
             return received_hex
 
-        # Changed code above - to process the correct ACK-Frame   
-        # try:
-        #     msg_idx = received_hex.index("0x18")
-        #     print(msg_idx)
-        #     if self.print_msg:
-        #         print(msg_dict[received_hex[msg_idx + 2]])
-        # except BaseException:
-        #     if self.print_msg:
-        #         print(msg_dict["0x01"])
-        #     # self.print_msg = False
-        # if self.print_msg:
-        #     print("message buffer:\n", received_hex)
-        #     print("message length:\t", data_count)
-
         if self.ret_hex_int is None:
             return
         elif self.ret_hex_int == "hex":
@@ -154,7 +140,9 @@ class ISX_3:
 
     def SaveSettings(self):
         """
-        Saves the following parameters permanently into the flash memory of the EIT system:
+        TODO: Adapt the description to the ISX 3 settings
+        0x90 - Save Settings
+        Saves the following parameters permanently into the flash memory of the ISX-3:
         - Ethernet parameters (DHCP, static IP)
         - WLAN parameters (SSID, DHCP, autoConnect, StaticIpSettings)
         - battery mode parameter (MeasureOnBat, minCapacity)
@@ -167,26 +155,86 @@ class ISX_3:
 
         Returns
         -------
-        ACK : str
-
+        ACK
         """
         self.print_msg = True
         self.write_command_string(bytearray([0x90, 0x00, 0x90]))
         self.print_msg = False
 
 
-    def SetOptions(self):
+    def SetOptions(self, EisSetup: EisMeasurementSetup):
         """
+        0x97 - Set Options
         This command causes a reboot of the Sciospec EIS-Device.
+        General Syntax
+        [CT] [LE] [OB] [CD] [CT]
+
+        [OB]
+            Activate time stamp in ms: 0x01
+            Activate time stamp in µs: 0x02
+            Activate current range: 0x04
 
         Returns
         -------
         ACK
         """
+        def ActivateTimeStampMs(EisSetup):
+            """
+            0x01 - Activate time stamp in ms
+            Configuration of the Instrument.
+            Activates time stamp in ms of measured data. 
+            Time stamp added to measurement data in 4Byte unsigned integer. ->  Depending on this setting the return frame of the measured data changes.
+            If measured time exceed 0xFFFFFFFF (about 1193h) time will start over at 0x00000000.
+            It is not possible to change this setting while a measurement is running.
+            This setting cannot be saved persistently.
+            It is not possible to activate the time stamp in µs and in ms. -> Only the last configuration will be valid.
 
+            Syntax
+            [CT] 02 01 [CD] [CT]
+
+            [CD]
+                0x01  Enable Time Stamp
+                0x00  Disable Time Stamp
+            """
+            return bytearray(list(itertools.chain(
+                    [0x97, 
+                     0x02, 
+                     0x01], 
+                    [EisSetup.time_stamp_ms], 
+                    [0x97])))
+
+        def ActivateTimeStampUs(EisSetup):
+            """
+            0x02 - Activate time stamp in µs
+            Configuration of the Instrument.
+            Activates time stamp in µs of measured data. 
+            Time stamp added to measurement data in 5Byte unsigned integer. ->  Depending on this setting the return frame of the measured data changes.
+            If measured time exceed 0xFFFFFFFFFF (about 305,4h) time will start over at 0x0000000000.
+            It is not possible to change this setting while a measurement is running.
+            This setting cannot be saved persistently.
+            It is not possible to activate the time stamp in µs and in ms. -> Only the last configuration will be valid.
+
+            Syntax
+            [CT] 02 02 [CD] [CT]
+
+            [CD]
+                0x01  Enable Time Stamp
+                0x00  Disable Time Stamp
+            """
+
+            self.print_msg = True
+            self.write_command_string(bytearray(
+                [0x97, 
+                    0x02, 
+                    0x01, 
+                    uintTbt(EisSetup.time_stamp_ms), 
+                    0x97]))
+            self.print_msg = False
         self.print_msg = True
-        self.write_command_string(bytearray([0x97, 0x00, 0x97]))
+        self.write_command_string(ActivateTimeStampMs(EisSetup))
         self.print_msg = False
+
+
 
     def GetOptions(self):
         # 0x98
@@ -893,14 +941,13 @@ class ISX_3:
 
             """
             repeat = clTbt_sp(EisSetup.repeat)
-            print(repeat)
-
+            repeat = repeat[:2]
+            
             return (bytearray(list(itertools.chain(
                     [0xB8,
                     0x03,
-                    0x01,
-                    0x00],
-                    repeat[:2],
+                    0x01],
+                    repeat,
                     [0xB8]))))
         
         def parse_data(data):
@@ -924,9 +971,7 @@ class ISX_3:
         self.print_msg = True
         # self.write_command_string(StopMeasurement())
         print('Measurement started.')
-        print(StartMeasurement(EisSetup))
         data = self.write_command_string(StartMeasurement(EisSetup))
-        
         self.print_msg = False  
 
 # 0xBD - Set Ethernet Configuration

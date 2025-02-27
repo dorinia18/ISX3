@@ -51,7 +51,7 @@ def available_serial_ports() -> list:
 
 def uintTbt(val: int):
     """
-    uintTbt converts an positive integer to a list of bytes (4Bytes).
+    uintTbt converts a positive integer to a list of bytes (4Bytes).
     """
     assert val >= 0 and isinstance(val, int), 'val is not an positive integer'
     return struct.pack(">I", val)
@@ -160,22 +160,23 @@ def single_hex_to_int(str_num: str) -> int:
 
 def bytesarray_to_float(bytes_array: np.ndarray) -> float:
     """
-    Converts a bytes array to a float number.
+    Converts an array of strings that represent bytes in hexadecimal representation
+    to a float number (32 Bit Float coded (according to IEEE 745)). 
 
     Parameters
     ----------
     bytes_array : np.ndarray
-        array of bytes
+        array of strings that represent bytes in hexadecimal representation
 
     Returns
     -------
     float
-        double precision float
+        32 Bit Float coded (according to IEEE 745)
+        single precision float
     """
     bytes_array = [int(b, 16) for b in bytes_array]
     bytes_array = bytes(bytes_array)
-    return struct.unpack("!f", bytes(bytes_array))[0]
-
+    return round(struct.unpack("!f", bytes(bytes_array))[0], 1)
 
 def bytesarray_to_byteslist(bytes_array: np.ndarray) -> list:
     """

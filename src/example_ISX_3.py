@@ -11,7 +11,7 @@ eis = sdc.EisMeasurementSetup(
     freq_list= FreqList(
         #freq = None,
         start_freq=100,
-        stop_freq=200,
+        stop_freq=100,
         steps=1,
         scale=1,
         precision=1.0,
@@ -21,7 +21,8 @@ eis = sdc.EisMeasurementSetup(
         phase_sync=0,
         exc_type=2
     ),
-    repeat=1000
+    repeat=1,
+    time_stamp_ms=1
 
 )
 Sciospec = ISX_3()
@@ -30,9 +31,10 @@ Sciospec.hex_counter = 3
 
 Sciospec.connect_device_FS("COM3")
 Sciospec.GetDeviceID()
+Sciospec.SetOptions(eis)
 
 Sciospec.SetSetup(eis)
 Sciospec.GetSetup()
 # print(bytesarray_to_float(b'\xb6%\x03B\xc8\x00\x00CH\x00\x00?\x80\x00\x00\x01?\x80\x00\x00<#\xd7\n\x01\x00\x00\x03\xe8\x02\x00\x00\x00\x00\x03\x00\x00\x00\x02\xb6'))
 
-#Sciospec.StartMeasure(eis)
+Sciospec.StartMeasure(eis)

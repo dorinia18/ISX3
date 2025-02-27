@@ -42,6 +42,12 @@ class EisMeasurementSetup:
     #Numbers of Spectra per Channel Config
     repeat: int
 
+    #Active time stamp in ms
+    time_stamp_ms: int
+
+    #Active time stamp in ms
+    #time_stamp_us: np.uint32
+
 
 
     # General Setting
