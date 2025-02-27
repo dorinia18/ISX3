@@ -109,7 +109,7 @@ class ISX_3:
 
             received = "".join(str(received))  # If you need all the data
         received_hex = [hex(receive) for receive in received]
-        print(received_hex)
+        #print(received_hex)
         try:
             found_start_ack = False
             found_end_ack = False
@@ -430,26 +430,6 @@ class ISX_3:
             ACK
 
             """
-            print("hallo:", clTbt_sp(freq_list.stop_freq))
-            print(clTbt_sp(freq_list.start_freq))
-
-            print( bytearray(list(itertools.chain([
-                0xB6,
-                0x25,
-                0x03],
-                clTbt_sp(freq_list.start_freq),
-                clTbt_sp(freq_list.stop_freq),
-                clTbt_sp(freq_list.steps),
-                [freq_list.scale],
-                clTbt_sp(freq_list.precision),
-                clTbt_sp(freq_list.current_amp),
-                [0x01],
-                uintTbt(freq_list.point_delay),
-                [0x02],
-                clTbt_sp(freq_list.phase_sync), #TODO find out what changes are needed to enable phase sync, error: Command could not be recognized
-                [0x03],
-                uintTbt(freq_list.exc_type),
-                [0xB6]))))
 
             return bytearray(list(itertools.chain([
                 0xB6,
@@ -469,7 +449,6 @@ class ISX_3:
                 uintTbt(freq_list.exc_type),
                 [0xB6])))
            
-            
 
         def Set_All_Amp(self):
             # not implemented
@@ -595,7 +574,6 @@ class ISX_3:
         self.print_msg = True
         self.write_command_string(Init_Setup())
         self.write_command_string(Add_Freq_List(EisSetup.freq_list))
-        # self.write_command_string([0xB6 , 0x20 , 0x03 , 0x44 , 0x7A , 0x00 , 0x00 , 0x4B , 0x18 , 0x96 , 0x80 , 0x41 , 0x20 , 0x00 , 0x00 , 0x01 , 0x3F , 0x80 , 0x00 , 0x00 , 0x3E , 0x80 , 0x00 , 0x00 , 0x01 , 0x00 , 0x00 , 0x03 , 0xE8 , 0x02 , 0x00 , 0x00 , 0x00 , 0x00 , 0xB6])
         self.print_msg = False        
         
     def GetSetup(self):
@@ -943,8 +921,6 @@ class ISX_3:
                 writer.writerow(['Measurement '+(dt.now().strftime("%d.%m.%Y"))+" "+(dt.now().strftime("%H:%M:%S"))]) # this row marks the start of a new measurement
                 writer.writerow(['TBD']) # header for the CSV file
 
-
-        
         self.print_msg = True
         # self.write_command_string(StopMeasurement())
         print('Measurement started.')
