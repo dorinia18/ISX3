@@ -28,7 +28,7 @@ class FreqList:
     current_amp: float
     point_delay: np.uint32
     phase_sync: float
-    exc_type: float
+    exc_type: np.uint32
 
 
 
@@ -47,6 +47,9 @@ class EisMeasurementSetup:
 
     #Active time stamp in ms
     #time_stamp_us: np.uint32
+
+    #Slot Nbr. in which the Settings are saved
+    #slot_nbr: int
 
 
 

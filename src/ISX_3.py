@@ -222,33 +222,127 @@ class ISX_3:
                 0x00  Disable Time Stamp
             """
 
-            self.print_msg = True
-            self.write_command_string(bytearray(
-                [0x97, 
+            return bytearray(list(itertools.chain(
+                   [0x97, 
                     0x02, 
-                    0x01, 
-                    uintTbt(EisSetup.time_stamp_ms), 
-                    0x97]))
-            self.print_msg = False
+                    0x02], 
+                    [EisSetup.time_stamp_ms], 
+                    [0x97])))
+            
         self.print_msg = True
-        self.write_command_string(ActivateTimeStampMs(EisSetup))
+        #self.write_command_string(ActivateTimeStampMs(EisSetup))
+        self.write_command_string(ActivateTimeStampUs(EisSetup))
         self.print_msg = False
-
 
 
     def GetOptions(self):
-        # 0x98
+        """
+        0x98 - Get Options
+
+        General Syntax
+        [CT] [LE] [OB] [CT]
+
+        [OB]
+            Time stamp: 0x01 || 0x02
+            Frequency range: 0x03
+            Current range: 0x04   
+            
+        Returns
+        -------
+        [CT] [LE] [OB] [CD] [CT]
+        ACK
+
+        """
+        def GetTimeStampOptions():
+            """
+            0x01 || 0x02 - Time stamp
+            Returns the currently configured options of the instruments.
+            Either 0x01 or 0x02 can be uased as [OB].
+
+            Syntax
+            [CT] 01 [OB] [CT]
+
+            Returns
+            -------
+            [CT] 02 [OB] [CD] [CT]
+            ACK
+
+            [CD]
+            Currently configured time stamp option
+                CD = 0x00: time stamp disabled
+                CD = 0x01: time stamp in ms
+                CD = 0x02: time stamp in µs
+
+            """
+            return bytearray([
+                0x98,
+                0x01,
+                0x01,
+                0x98])
+        
+        def GetFreqRangeOptions():
+            #not implemented yet
+            """
+            0x03 - Frequency Range
+            Returns available configurable frequency range of the instruments.
+            Comment: Length of the return value is 09 and not as mentionend in the Manual (02)
+
+            Syntax
+            [CT] 01 03 [CT]
+
+            Returns
+            -------
+            [CT] 09 03 [MinF] [MaxF] [CT]
+            ACK
+            
+            [MinF]
+                Minimum configurable frequency in Hz                  
+                Length: 4Byte
+                Data Format:  float
+            
+            [MaxF]
+                Maximum configurable frequency in Hz                  
+                Length: 4Byte
+                Data Format:  float
+
+            """
+            return bytearray([
+                0x98,
+                0x01,
+                0x03,
+                0x98])
+
+
         self.print_msg = True
-        self.write_command_string(bytearray([0x98, 0x00, 0x98]))
+        self.write_command_string(GetTimeStampOptions())
+        self.write_command_string(GetFreqRangeOptions())
         self.print_msg = False
 
     def ResetSystem(self):
-        # 0xA1
+        """
+        0xA1 - Reset System
+        complete restart of the system
+
+        General Syntax
+        [CT] 00 [CT]
+
+        Returns
+        -------
+        ACK
+        Wake-Up Message
+        System-Ready-Message
+        
+        """
         self.print_msg = True
         self.write_command_string(bytearray([0x90, 0x00, 0x90]))
         self.print_msg = False
 
     def SetFE_Settings(self):
+        
+
+
+
+
         self.print_msg = True
         self.write_command_string(bytearray(
             [0xB0,
@@ -486,7 +580,7 @@ class ISX_3:
                 clTbt_sp(freq_list.start_freq),
                 clTbt_sp(freq_list.stop_freq),
                 clTbt_sp(freq_list.steps),
-                [freq_list.scale],
+                (clTbt_sp(freq_list.scale)[3:]), #TODO find out why it does not work (always linear)
                 clTbt_sp(freq_list.precision),
                 clTbt_sp(freq_list.current_amp),
                 [0x01],
@@ -498,7 +592,7 @@ class ISX_3:
                 [0xB6])))
            
 
-        def Set_All_Amp(self):
+        def Set_All_Amp(freq_list: FreqList):
             # not implemented
             """
             0x05 -  Set Amplitude
@@ -521,16 +615,14 @@ class ISX_3:
             ACK
 
             """
-            # self.print_msg = True
-            # self.write_command_string(bytearray([
-            #     0xB7,
-            #     0x06,
-            #     0x05,
-            #     # excitation Type
-            #     # Amplitude
-            #     0xB7]))
-            # self.print_msg = False
-            pass
+            return bytearray(list(itertools.chain(
+                    [0xB6,
+                     0x06,
+                     0x05],
+                     (uintTbt(freq_list.exc_type)[3:]),
+                     clTbt_sp(freq_list.current_amp),
+                     [0xB6])))
+            
 
         def Set_Row_Amp(self):
             # not implemented
@@ -617,12 +709,30 @@ class ISX_3:
             # self.print_msg = False
             pass
 
+        def LoadingFromSlot():
+            """
+            0x20 -  Saving to Slot
+            It is possible to load all information required for a measurement from the internal storage of the impedance analyzer.
+            The system holds up to 255 setup configurations including any compensation data.
+            For addressing, the configurations are numerated from slot 1 to slot 255.
+
+            Syntax
+            [CT] 02 20 [Slot] [CT]
+
+            [Slot]
+                Length: 1 Byte
+            """
+            return(bytearray([0xB6, 0x02, 0x20, 0x01, 0xB6]))
+
         # self.setup = EisSetup
 
         self.print_msg = True
         self.write_command_string(Init_Setup())
         self.write_command_string(Add_Freq_List(EisSetup.freq_list))
-        self.print_msg = False        
+        self.write_command_string(Set_All_Amp(EisSetup.freq_list))
+        # self.write_command_string(LoadingFromSlot())
+        self.print_msg = False  
+
         
     def GetSetup(self):
         """
@@ -711,11 +821,27 @@ class ISX_3:
 
             """
             return(bytearray([0xB7, 0x01, 0x04, 0xB7]))
+        
+        def SavingToSlot():
+            """
+            0x20 -  Saving to Slot
+            It is possible to load all information required for a measurement from the internal storage of the impedance analyzer.
+            The system holds up to 255 setup configurations including any compensation data.
+            For addressing, the configurations are numerated from slot 1 to slot 255.
+
+            Syntax
+            [CT] 02 20 [Slot] [CT]
+
+            [Slot]
+                Length: 1 Byte
+            """
+            return(bytearray([0xB7, 0x02, 0x20, 0x01, 0xB7]))
   
         self.print_msg = True
         self.write_command_string(GetNbrFreq())
         #self.write_command_string(GetFreqPoint())
         self.write_command_string(GetFreqList())
+        self.write_command_string(SavingToSlot())
         self.print_msg = False
 
     def SetSyncTime(self):

@@ -10,19 +10,20 @@ from com_util import (clTbt_sp, uintTbt,bytesarray_to_float)
 eis = sdc.EisMeasurementSetup(
     freq_list= FreqList(
         #freq = None,
-        start_freq=100,
-        stop_freq=100,
-        steps=1,
-        scale=1,
-        precision=1.0,
+        start_freq=500, #ok
+        stop_freq=10000, #ok
+        steps=100, #ok
+        scale=1, #TODO find out why always linear
+        precision=3.0, #ok # low: 0.0; medium: 1.0; high: 2.0; very high: 3.0
         volt_amp=None,
-        current_amp=0.01,
+        current_amp=0.0001,
         point_delay=1000,
         phase_sync=0,
-        exc_type=2
+        exc_type=2 #Excitation type not changed in GUI
+
     ),
-    repeat=1,
-    time_stamp_ms=1
+    repeat=1, #nbr. of repeat is not changed in GUI
+    time_stamp_ms=0
 
 )
 Sciospec = ISX_3()
@@ -33,8 +34,10 @@ Sciospec.connect_device_FS("COM3")
 Sciospec.GetDeviceID()
 Sciospec.SetOptions(eis)
 
+Sciospec.GetOptions()
+
 Sciospec.SetSetup(eis)
 Sciospec.GetSetup()
-# print(bytesarray_to_float(b'\xb6%\x03B\xc8\x00\x00CH\x00\x00?\x80\x00\x00\x01?\x80\x00\x00<#\xd7\n\x01\x00\x00\x03\xe8\x02\x00\x00\x00\x00\x03\x00\x00\x00\x02\xb6'))
 
-Sciospec.StartMeasure(eis)
+
+#Sciospec.StartMeasure(eis)

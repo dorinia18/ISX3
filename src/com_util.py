@@ -176,7 +176,7 @@ def bytesarray_to_float(bytes_array: np.ndarray) -> float:
     """
     bytes_array = [int(b, 16) for b in bytes_array]
     bytes_array = bytes(bytes_array)
-    return round(struct.unpack("!f", bytes(bytes_array))[0], 1)
+    return round(struct.unpack("!f", bytes(bytes_array))[0], 6)
 
 def bytesarray_to_byteslist(bytes_array: np.ndarray) -> list:
     """
